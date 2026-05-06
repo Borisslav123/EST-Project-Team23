@@ -1,0 +1,13 @@
+# MATLAB autosave files
+*.asv
+*.m~
+
+# Simulink cache files (Prevents massive file uploads)
+*.slxc
+
+# Simulink auto-generated project folders
+slprj/
+
+# Operating System hidden files
+.DS_Store
+Thumbs.db
