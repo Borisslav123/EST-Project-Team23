@@ -1,12 +1,10 @@
 
 %% read raw data, time units, and graph
-supplyData = readmatrix("Team23_supply.csv");
-demandData = readmatrix("Team23_demand.csv");
-price = readmatrix("energy-charts_Electricity_production_and_spot_prices_the_Netherlands_in_2025.csv");
-settlementPrice = readmatrix("settlement_prices_202412312300_202512312300_CET.csv");
+supplyData = readmatrix("data\Team23_supply.csv");
+demandData = readmatrix("data\Team23_demand.csv");
+settlementPrice = readmatrix("data\settlement_prices_202412312300_202512312300_CET.csv");
 settlementPrice = settlementPrice(:, end-3:end-2); %1rst column buying, 2nd selling
 
-price = [repelem(price(4:6554,2), 4, 1); price(6555:end,2)];
 
 quart = 15*60;
 hour = 3600;
@@ -25,8 +23,6 @@ ylabel('Power (MW)');
 title('Power over time of a year')
 legend('Supply', 'Demand')
 
-figure
-plot(time, price)
 
 %% Average and total power supply and demand
 
