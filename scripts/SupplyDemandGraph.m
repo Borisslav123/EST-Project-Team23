@@ -61,7 +61,6 @@ title('Average power of a day over time of a year');
 legend('Supply', 'Demand')
 xlim([0 365])
 
-
 %% Power difference
 
 Difference = supply-demand;
@@ -79,7 +78,6 @@ legend('Difference in supply and demand', 'average Difference', '0-Value')
 title('Power difference between supply and demand over a year')
 
 %% Largest and most common idividual power shortages
-
 
 pos = (Difference < 0);
 d = diff([0; pos; 0]);
@@ -129,14 +127,10 @@ hold off
 
 maxNeedStoredEnergy = store(Difference, time, maxStorage);
 
-
-
 figure
 plot(time, maxNeedStoredEnergy, 'b-')
 yline(maxStorage,'-y')
 yline(0, 'Color',[0.5 0.5 0.5])
-
-
 
 %% Energy storage with a constant buy/sell price
 
@@ -175,7 +169,7 @@ ylabel('Energy (MWh)')
 title('Stored energy over time')
 legend('Stored energy', 'Maximum storage')
 
-%% Energy storage with 
+%% Energy storage with dynamic pricing
 
 [~, sold, bought] = store(Difference, time, maxStorage);
 
@@ -190,7 +184,6 @@ i = 0;
 while abs(boughtSum) > 0.0001
     
     storage = min(storage + boughtSumVariable*boughtSum, maxStorage);
-    %storage = min(storage+boughtSumVariable*storage, maxStorage);
    
     if storage < 0 
         storage = 0;
@@ -227,7 +220,17 @@ legend('Stored energy', 'Maximum storage')
 %% Functions
 function [eStored, eSold, eBought] = store(pDiff, time, storage)
 
-
+% Function that describes the amount of energy that is stored, sold and
+% bought over a period of time.
+%
+% pDiff: the power difference of supply and demand.
+% time: the time of the power difference.
+% storage: the maximum amount of energy that can be stored.
+%
+% returns: 
+% eStored: energy that is stored.
+% eSold: energy that is sold.
+% eBought: energy that is bought.
 
     eStored = zeros(size(pDiff));
     eSum = 0; 
