@@ -2,8 +2,8 @@
 %% read raw data, time units, and graph
 supplyData = readmatrix("data\Team23_supply.csv");
 demandData = readmatrix("data\Team23_demand.csv");
-settlementPrice = readmatrix("data\settlement_prices_202412312300_202512312300_CET.csv");
-settlementPrice = settlementPrice(:, end-3:end-2); %1rst column buying, 2nd selling
+price = readmatrix("data\settlement_prices_202412312300_202512312300_CET.csv");
+price = price(:, end-3:end-2); %1rst column buying, 2nd selling
 
 
 quart = 15*60;
@@ -60,6 +60,7 @@ ylabel('Power (MW)');
 title('Average power of a day over time of a year');
 legend('Supply', 'Demand')
 xlim([0 365])
+
 
 %% Power difference
 
@@ -125,7 +126,7 @@ hold off
 
 %% Energy storage with the maxium needed storage cap
 
-maxNeedStoredEnergy = store(Difference, time, maxStorage);
+maxNeedStoredEnergy = store(Difference, maxStorage);
 
 figure
 plot(time, maxNeedStoredEnergy, 'b-')
@@ -136,7 +137,7 @@ yline(0, 'Color',[0.5 0.5 0.5])
 
 priceRatio = 0.5;
 boughtSumVariable = 0.001; 
-[~, sold, bought] = store(Difference, time, maxStorage);
+[~, sold, bought] = store(Difference, maxStorage);
 
 storage = maxStorage;
 totalBought = sum(bought);
@@ -149,7 +150,7 @@ while abs(boughtSum) > 0.0001
     
     storage = min(max(storage + boughtSumVariable*boughtSum,0), maxStorage);
 
-    [storedEnergy, sold, bought] = store(Difference, time, storage);
+    [storedEnergy, sold, bought] = store(Difference,storage);
     
     totalBought = sum(bought);
     totalSold = sum(sold);
@@ -157,50 +158,9 @@ while abs(boughtSum) > 0.0001
     i = i + 1;
 end
 
-figure;
-plot(time, storedEnergy, '-b')
-yline(storage,'-y')
-yline(0, 'Color',[0.5 0.5 0.5])
-xlim([0 max(time)])
-ylim([min(storedEnergy)-1000 max(storedEnergy)+1000])
-
-xlabel('Time (h)')
-ylabel('Energy (MWh)')
-title('Stored energy over time')
-legend('Stored energy', 'Maximum storage')
-
-%% Energy storage with dynamic pricing
-
-[~, sold, bought] = store(Difference, time, maxStorage);
-
-storage = maxStorage;
-totalBought = sum(bought);
-totalSold = sum(sold);
-boughtSum = totalBought - totalSold;
-boughtSumVariable = 0.00001; 
-
-i = 0;
-%finding the optimal amount of storage
-while abs(boughtSum) > 0.0001
-    
-    storage = min(storage + boughtSumVariable*boughtSum, maxStorage);
-   
-    if storage < 0 
-        storage = 0;
-    end
-        
-    [storedEnergy, sold, bought] = store(Difference, time, storage);
-    
-    totalBought = sum(bought.*settlementPrice(:, 1));
-    totalSold = sum(sold.*settlementPrice(:, 2));
-    boughtSum = totalBought - totalSold;
-    i = i + 1;
-end
-
-
 storageReduction = (maxStorage-storage)/maxStorage * 100;
 
-fprintf('The new storage is %.2fMWh which is a reduction of %.2f percent. \n', ...
+fprintf('The constant storage is %.2fMWh which is a reduction of %.2f percent. \n', ...
    storage ,storageReduction);
 
 figure;
@@ -216,28 +176,75 @@ title('Stored energy over time')
 legend('Stored energy', 'Maximum storage')
 
 
+%% Energy storage with dynamic pricing
 
-%% Functions
-function [eStored, eSold, eBought] = store(pDiff, time, storage)
+[~, sold, bought] = store(Difference, maxStorage);
+
+storage = maxStorage;
+totalBought = sum(bought.*price(:, 1));
+totalSold = sum(sold.*price(:, 2));
+boughtSum = totalBought - totalSold;
+boughtSumVariable = 0.00001; 
+
+i = 0;
+%finding the optimal amount of storage
+while abs(boughtSum) > 0.0001
+    
+    storage = min(storage + boughtSumVariable*boughtSum, maxStorage);
+   
+    if storage < 0 
+        storage = 0;
+    end
+        
+    [storedEnergy, sold, bought] = store(Difference, storage);
+    
+    totalBought = sum(bought.*price(:, 1));
+    totalSold = sum(sold.*price(:, 2));
+    boughtSum = totalBought - totalSold;
+    i = i + 1;
+end
+
+
+storageReduction = (maxStorage-storage)/maxStorage * 100;
+
+fprintf('The dynamic storage is %.2fMWh which is a reduction of %.2f percent. \n', ...
+   storage ,storageReduction);
+
+figure;
+plot(time, storedEnergy, '-b')
+yline(storage,'-y')
+yline(0, 'Color',[0.5 0.5 0.5])
+xlim([0 max(time)])
+ylim([min(storedEnergy)-1000 max(storedEnergy)+1000])
+
+xlabel('Time (h)')
+ylabel('Energy (MWh)')
+title('Stored energy over time')
+legend('Stored energy', 'Maximum storage')
+
+
+%% -Functions-------------------------------------------------------------
+
+function [eStored, eSold, eBought] = store(pDiff, storage)
 
 % Function that describes the amount of energy that is stored, sold and
 % bought over a period of time.
 %
-% pDiff: the power difference of supply and demand.
-% time: the time of the power difference.
+% pDiff: the power difference of supply and demand over a period of time.
 % storage: the maximum amount of energy that can be stored.
 %
 % returns: 
 % eStored: energy that is stored.
 % eSold: energy that is sold.
 % eBought: energy that is bought.
-
-    eStored = zeros(size(pDiff));
+    k = numel(pDiff);
     eSum = 0; 
-    eSold = zeros(numel(time), 1);
-    eBought= zeros(numel(time), 1);
+    eStored = zeros(k, 1);
+    eSold = zeros(k, 1);
+    eBought= zeros(k, 1);
 
-    for n = 1:numel(pDiff)
+
+    for n = 1:k
         eSum = eSum + pDiff(n)*0.25;
         if eSum > storage
             eSold(n) = eSum-storage;
