@@ -204,7 +204,6 @@ while abs(boughtSum) > 0.0001
     i = i + 1;
 end
 
-
 storageReduction = (maxStorage-storage)/maxStorage * 100;
 
 fprintf('The dynamic storage is %.2fMWh which is a reduction of %.2f percent. \n', ...
@@ -222,6 +221,14 @@ ylabel('Energy (MWh)')
 title('Stored energy over time')
 legend('Stored energy', 'Maximum storage')
 
+%% Longest time stored
+
+pos = (storedEnergy > 0);
+d = diff([0; pos; 0]);
+starts = find(d == 1);
+ends  = find(d == -1) - 1;
+timeStored = ends - starts;
+maxTimeStored = max(timeStored) * dt/24 % time in days
 
 %% -Functions-------------------------------------------------------------
 
