@@ -65,6 +65,15 @@ xlim([0 365])
 %% Power difference
 
 Difference = supply-demand;
+
+% energy losses-------------------------------------------
+lineEfficiency = 0.93;
+pumpEfficiency = 0.873;
+generatorEfficiency = 0.883;
+
+Difference(Difference>0) = Difference(Difference>0)*lineEfficiency*pumpEfficiency*generatorEfficiency;
+%---------------------------------------------------------
+
 maxDifference = max(Difference);
 minDifference = min(Difference);
 avgDifference = mean(Difference, 1);
@@ -77,6 +86,8 @@ xlabel('Time (h)')
 ylabel('Power difference (MW)')
 legend('Difference in supply and demand', 'average Difference', '0-Value')
 title('Power difference between supply and demand over a year')
+
+
 
 %% Largest and most common idividual power shortages
 
@@ -115,8 +126,7 @@ hold on
 plot(time(firstMaxIdx:minIdx),energy(firstMaxIdx:minIdx), '-r', LineWidth=0.7);
 plot(time(firstMaxIdx),energy(firstMaxIdx),"r+", MarkerSize=7, LineWidth=1)
 plot(time(minIdx),energy(minIdx),"r+", MarkerSize=7, LineWidth=1)
-xlim([0, max(time)])
-ylim([0, max(energy)])
+
 
 xlabel('Time (h)')
 ylabel('Energy (MWh)')
@@ -230,6 +240,7 @@ ends  = find(d == -1) - 1;
 timeStored = ends - starts;
 maxTimeStored = max(timeStored) * dt/24 % time in days
 
+stor
 %% -Functions-------------------------------------------------------------
 
 function [eStored, eSold, eBought] = store(pDiff, storage)
@@ -265,6 +276,11 @@ function [eStored, eSold, eBought] = store(pDiff, storage)
     end 
 end
 
+%%
+
+figure
+plot(0:100, sqrt(2*9.81*(0:100)));
+yline(mean(sqrt(2*9.81*(0:100))))
 
 
 
