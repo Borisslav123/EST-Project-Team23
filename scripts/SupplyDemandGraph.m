@@ -66,13 +66,13 @@ xlim([0 365])
 
 Difference = supply-demand;
 
-% energy losses-------------------------------------------
-lineEfficiency = 0.93;
-pumpEfficiency = 0.873;
-generatorEfficiency = 0.883;
-
-Difference(Difference>0) = Difference(Difference>0)*lineEfficiency*pumpEfficiency*generatorEfficiency;
-%---------------------------------------------------------
+% % energy losses-------------------------------------------
+% lineEfficiency = 0.93;
+% pumpEfficiency = 0.873;
+% generatorEfficiency = 0.883;
+% 
+% Difference(Difference>0) = Difference(Difference>0)*lineEfficiency*pumpEfficiency*generatorEfficiency;
+% %---------------------------------------------------------
 
 maxDifference = max(Difference);
 minDifference = min(Difference);
@@ -238,9 +238,71 @@ d = diff([0; pos; 0]);
 starts = find(d == 1);
 ends  = find(d == -1) - 1;
 timeStored = ends - starts;
-maxTimeStored = max(timeStored) * dt/24 % time in days
+maxTimeStored = max(timeStored) * dt/24; % time in days
 
-stor
+%% Fastest (dis)charge in 15 minutes
+storedDifference = diff([0;storedEnergy]);
+fastDischarge = min(storedDifference);
+fastCharge = max(storedDifference);
+maxStoredDifference = sign(fastDischarge + fastCharge)... 
+    *max(fastCharge, abs(fastDischarge))/dt; %[MW]
+
+avgPowerFlow = mean(abs(storedDifference(storedDifference~=0)))/dt;
+
+%% Fastest (dis)charge of an full/empty tank
+
+pos = ((storedEnergy>0) - 3*(storedEnergy<storage));
+d = diff([0;pos]);
+startFill = find(d == 1);
+endFill = [];
+i = 1;
+while i < numel(startFill)
+    k = startFill(i) + 1;
+    oldEndfill = numel(endFill);
+    for n = k:startFill(i+1)
+        if storedEnergy(n) == storage
+            endFill = [endFill; n];
+            break;
+        end
+    end
+    if numel(endFill) <= oldEndfill
+        startFill(i) = [];
+        i = i-1;
+    end
+    i = i+1;
+end
+startFill = startFill(1:numel(endFill));
+
+fillTime = (endFill - startFill)*dt; %time it takes to fully fill the tank [h]
+avgFillTime = mean(fillTime);
+minFillTime = min(fillTime);
+
+startDischarge = find(d == -3);
+endDischarge = [];
+i = 1;
+while i < numel(startDischarge)
+    k = startDischarge(i) + 1;
+    oldEndDischarge = numel(endDischarge);
+    for n = k:startDischarge(i+1)
+        if storedEnergy(n) == 0
+            endDischarge = [endDischarge; n];
+            break;
+        end
+    end
+    if numel(endDischarge) <= oldEndDischarge
+        startDischarge(i) = [];
+        i = i-1;
+    end
+    i = i+1;
+end
+startDischarge = startDischarge(1:numel(endDischarge));
+
+dischargeTime = (endDischarge - startDischarge)*dt; %time it takes to fully empty the tank [h]
+avgDischargeTime = mean(dischargeTime);
+minDischargeTime = min(dischargeTime);
+fastTotalPowerFlow = storage/min(minDischargeTime, minFillTime);
+avgTotPowerFlow = storage/mean([fillTime;dischargeTime]);
+
 %% -Functions-------------------------------------------------------------
 
 function [eStored, eSold, eBought] = store(pDiff, storage)
@@ -276,11 +338,6 @@ function [eStored, eSold, eBought] = store(pDiff, storage)
     end 
 end
 
-%%
-
-figure
-plot(0:100, sqrt(2*9.81*(0:100)));
-yline(mean(sqrt(2*9.81*(0:100))))
 
 
 
